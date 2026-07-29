@@ -14,6 +14,7 @@ export async function PATCH(request, { params }) {
   const updates = { updated_at: new Date().toISOString() };
   if (body.address !== undefined) updates.address = body.address;
   if (body.property_name !== undefined) updates.property_name = body.property_name;
+  if (body.listing_url !== undefined) {updates.listing_url = body.listing_url;}
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.stage_id !== undefined) updates.stage_id = body.stage_id;
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;

@@ -7,6 +7,7 @@ import { useState } from 'react';
 export default function AddProspectModal({ stages, onClose, onCreate }) {
   const [address, setAddress] = useState('');
   const [propertyName, setPropertyName] = useState('');
+  const [listingUrl, setListingUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [stageId, setStageId] = useState(stages[0]?.id || '');
   const [error, setError] = useState('');
@@ -23,6 +24,7 @@ export default function AddProspectModal({ stages, onClose, onCreate }) {
     onCreate({
       address: address.trim(),
       property_name: propertyName.trim() || null,
+      listing_url: listingUrl.trim() || null,
       notes: notes.trim() || null,
       stage_id: stageId,
     });
@@ -60,6 +62,18 @@ export default function AddProspectModal({ stages, onClose, onCreate }) {
           value={propertyName}
           onChange={(e) => setPropertyName(e.target.value)}
           placeholder="e.g. Wattle St Apartment"
+        />
+
+        <label className="sheet__label" htmlFor="listing_url">
+          Listing URL
+        </label>
+        <input
+          id="listing_url"
+          type="url"
+          className="sheet__input"
+          value={listingUrl}
+          onChange={(e) => setListingUrl(e.target.value)}
+          placeholder="https://streeteasy.com/..."
         />
 
         <label className="sheet__label" htmlFor="stage">

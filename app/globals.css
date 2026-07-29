@@ -110,6 +110,23 @@ main {
 
 /* --- Card --- */
 
+.card__listing-link {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #64748b;
+  text-decoration: none;
+}
+
+.card__listing-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
 .card {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -120,6 +137,8 @@ main {
   min-height: 44px; /* comfortable tap target */
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .card--dragging {
@@ -129,6 +148,8 @@ main {
 .card__address {
   font-size: 14px;
   line-height: 1.4;
+  min-width: 0;
+  flex: 1;
 }
 
 /* --- Buttons --- */
