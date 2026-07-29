@@ -231,19 +231,19 @@ describe('POST /api/boards', () => {
     let boardCalls = 0;
 
     mockSupabase.from.mockImplementation((table) => {
-    if (table === 'boards') {
-        boardCalls += 1;
+        if (table === 'boards') {
+            boardCalls += 1;
 
-        // First boards call = INSERT
-        // Second boards call = cleanup DELETE
-        return boardCalls === 1 ? boardChain : cleanupChain;
-    }
+            // First boards call = INSERT
+            // Second boards call = cleanup DELETE
+            return boardCalls === 1 ? boardChain : cleanupChain;
+        }
 
-    if (table === 'stages') {
-        return stagesChain;
-    }
+        if (table === 'stages') {
+            return stagesChain;
+        }
 
-    return createChain();
+        return createChain();
     });
 
     const { POST } = await import('../../app/api/boards/route');
