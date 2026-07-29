@@ -223,21 +223,27 @@ describe('POST /api/boards', () => {
     });
 
     const stagesChain = createChain({
-      error: { message: 'stage insert failed' },
+        error: { message: 'stage insert failed' },
     });
 
     const cleanupChain = createChain();
 
+    let boardCalls = 0;
+
     mockSupabase.from.mockImplementation((table) => {
-      if (table === 'boards') {
-        return boardChain;
-      }
+    if (table === 'boards') {
+        boardCalls += 1;
 
-      if (table === 'stages') {
+        // First boards call = INSERT
+        // Second boards call = cleanup DELETE
+        return boardCalls === 1 ? boardChain : cleanupChain;
+    }
+
+    if (table === 'stages') {
         return stagesChain;
-      }
+    }
 
-      return cleanupChain;
+    return createChain();
     });
 
     const { POST } = await import('../../app/api/boards/route');
