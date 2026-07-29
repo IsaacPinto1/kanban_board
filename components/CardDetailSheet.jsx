@@ -1,0 +1,67 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+// Full-screen sheet on mobile (see DESIGN.md section 6 -- friendlier than a
+// centered modal on small viewports). Local-only edits for now; onSave is
+// where the PATCH call goes once the DB is wired up (see README).
+export default function CardDetailSheet({ prospect, onClose, onSave, onDelete }) {
+  const [propertyName, setPropertyName] = useState(prospect.property_name || '');
+  const [notes, setNotes] = useState(prospect.notes || '');
+
+  useEffect(() => {
+    setPropertyName(prospect.property_name || '');
+    setNotes(prospect.notes || '');
+  }, [prospect]);
+
+  function handleSave() {
+    onSave(prospect.id, { property_name: propertyName, notes });
+    onClose();
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet__header">
+          <button className="sheet__close" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <p className="sheet__address">{prospect.address}</p>
+
+        <label className="sheet__label" htmlFor="property_name">
+          Property name
+        </label>
+        <input
+          id="property_name"
+          className="sheet__input"
+          value={propertyName}
+          onChange={(e) => setPropertyName(e.target.value)}
+          placeholder="e.g. Wattle St Apartment"
+        />
+
+        <label className="sheet__label" htmlFor="notes">
+          Notes
+        </label>
+        <textarea
+          id="notes"
+          className="sheet__textarea"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={8}
+          placeholder="Anything worth remembering about this one..."
+        />
+
+        <div className="sheet__actions">
+          <button className="button button--danger" onClick={() => onDelete(prospect.id)}>
+            Delete
+          </button>
+          <button className="button button--primary" onClick={handleSave}>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
