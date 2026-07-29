@@ -7,15 +7,21 @@ import { useState, useEffect } from 'react';
 // where the PATCH call goes once the DB is wired up (see README).
 export default function CardDetailSheet({ prospect, onClose, onSave, onDelete }) {
   const [propertyName, setPropertyName] = useState(prospect.property_name || '');
+  const [listingUrl, setListingUrl] = useState('');
   const [notes, setNotes] = useState(prospect.notes || '');
 
   useEffect(() => {
     setPropertyName(prospect.property_name || '');
+    setListingUrl(prospect.listing_url || '');
     setNotes(prospect.notes || '');
   }, [prospect]);
 
   function handleSave() {
-    onSave(prospect.id, { property_name: propertyName, notes });
+    onSave(prospect.id, { 
+      property_name: propertyName,
+      listing_url: listingUrl.trim() || null,
+      notes: notes,
+    });
     onClose();
   }
 
@@ -39,6 +45,17 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
           value={propertyName}
           onChange={(e) => setPropertyName(e.target.value)}
           placeholder="e.g. Wattle St Apartment"
+        />
+        <label className="sheet__label" htmlFor="detail-listing-url">
+          Listing URL
+        </label>
+        <input
+          id="detail-listing-url"
+          type="url"
+          className="sheet__input"
+          value={listingUrl}
+          onChange={(e) => setListingUrl(e.target.value)}
+          placeholder="https://streeteasy.com/..."
         />
 
         <label className="sheet__label" htmlFor="notes">

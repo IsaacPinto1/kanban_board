@@ -1,0 +1,1 @@
+alter table prospects add column listing_url text;
