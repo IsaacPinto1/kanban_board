@@ -836,6 +836,7 @@ describe('POST /api/boards/[code]/prospects', () => {
       address: '123 Main St',
       property_name: 'Nice Apartment',
       notes: 'Ask about pets',
+      listing_url: null,
       sort_order: 3000,
     });
   });
