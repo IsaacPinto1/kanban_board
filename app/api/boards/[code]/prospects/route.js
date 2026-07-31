@@ -39,6 +39,7 @@ export async function POST(request, { params }) {
       property_name: body.property_name || null,
       notes: body.notes || null,
       listing_url: body.listing_url || null,
+      rent: body.rent === undefined || body.rent === null ? null : body.rent,
       sort_order: nextOrder,
     })
     .select()

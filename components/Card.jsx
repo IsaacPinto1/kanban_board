@@ -2,8 +2,8 @@
 
 import { Draggable } from '@hello-pangea/dnd';
 
-// Collapsed card: shows the address and, when available, a link to the
-// external rental listing.
+// Collapsed card: shows the address, rent (when available, in small text),
+// and a link to the external rental listing (when available).
 export default function Card({ prospect, index, editMode, stageColor, onOpen }) {
   return (
     <Draggable
@@ -27,7 +27,12 @@ export default function Card({ prospect, index, editMode, stageColor, onOpen }) 
           role={editMode ? undefined : 'button'}
           tabIndex={editMode ? undefined : 0}
         >
-          <span className="card__address">{prospect.address}</span>
+          <div className="card__body">
+            <span className="card__address">{prospect.address}</span>
+            {prospect.rent != null && (
+              <span className="card__rent">${Number(prospect.rent).toLocaleString()}</span>
+            )}
+          </div>
 
           {prospect.listing_url && (
             <a
