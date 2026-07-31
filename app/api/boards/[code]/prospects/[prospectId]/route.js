@@ -31,12 +31,14 @@ const POSITION_FIELDS = ['stage_id', 'sort_order'];
 // are treated as independent concerns for concurrency purposes (see below),
 // so callers should only ever send one kind of field per request.
 //
-// Optional conflict-check fields:
-//   expected_details_updated_at  -- checked/bumped only if any of
+// Required conflict-check fields (required, not optional, precisely because
+// it'd otherwise be easy for some future caller to forget one and silently
+// reintroduce the race this exists to prevent):
+//   expected_details_updated_at  -- required if any of
 //                                   address/property_name/notes/listing_url
 //                                   is present in the body
-//   expected_position_updated_at -- checked/bumped only if stage_id or
-//                                   sort_order is present in the body
+//   expected_position_updated_at -- required if stage_id or sort_order is
+//                                   present in the body
 //
 // These are deliberately separate from each other (rather than one shared
 // `updated_at`) so that someone dragging a card to a new stage doesn't
@@ -54,6 +56,22 @@ export async function PATCH(request, { params }) {
   }
 
   const body = await request.json();
+  const touchesDetails = DETAIL_FIELDS.some((field) => body[field] !== undefined);
+  const touchesPosition = POSITION_FIELDS.some((field) => body[field] !== undefined);
+
+  if (touchesDetails && body.expected_details_updated_at === undefined) {
+    return NextResponse.json(
+      { error: 'expected_details_updated_at is required when updating card details' },
+      { status: 400 }
+    );
+  }
+  if (touchesPosition && body.expected_position_updated_at === undefined) {
+    return NextResponse.json(
+      { error: 'expected_position_updated_at is required when updating stage_id/sort_order' },
+      { status: 400 }
+    );
+  }
+
   const updates = { updated_at: new Date().toISOString() };
   if (body.address !== undefined) updates.address = body.address;
   if (body.property_name !== undefined) updates.property_name = body.property_name;
@@ -61,9 +79,6 @@ export async function PATCH(request, { params }) {
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.stage_id !== undefined) updates.stage_id = body.stage_id;
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
-
-  const touchesDetails = DETAIL_FIELDS.some((field) => body[field] !== undefined);
-  const touchesPosition = POSITION_FIELDS.some((field) => body[field] !== undefined);
 
   if (touchesDetails) updates.details_updated_at = updates.updated_at;
   if (touchesPosition) updates.position_updated_at = updates.updated_at;
@@ -74,16 +89,13 @@ export async function PATCH(request, { params }) {
     .eq('id', params.prospectId)
     .eq('board_id', board.id);
 
-  const checksDetails = touchesDetails && body.expected_details_updated_at !== undefined;
-  const checksPosition = touchesPosition && body.expected_position_updated_at !== undefined;
-
-  if (checksDetails) query = query.eq('details_updated_at', body.expected_details_updated_at);
-  if (checksPosition) query = query.eq('position_updated_at', body.expected_position_updated_at);
+  if (touchesDetails) query = query.eq('details_updated_at', body.expected_details_updated_at);
+  if (touchesPosition) query = query.eq('position_updated_at', body.expected_position_updated_at);
 
   const { data, error } = await query.select().single();
 
   if (error) {
-    if ((checksDetails || checksPosition) && error.code === 'PGRST116') {
+    if ((touchesDetails || touchesPosition) && error.code === 'PGRST116') {
       return NextResponse.json(
         { error: 'conflict', message: 'This card was changed by someone else.' },
         { status: 409 }

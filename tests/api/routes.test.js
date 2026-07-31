@@ -985,6 +985,8 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
         notes: 'Updated notes',
         stage_id: 'stage-2',
         sort_order: 5000,
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
+        expected_position_updated_at: '2026-01-01T00:00:00.000Z',
       }),
       {
         params: {
@@ -1031,6 +1033,7 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     await PATCH(
       patchRequest({
         notes: 'New notes',
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
       }),
       {
         params: {
@@ -1071,6 +1074,7 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     const response = await PATCH(
       patchRequest({
         notes: 'Hacked notes',
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
       }),
       {
         params: {
@@ -1233,23 +1237,37 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     expect(chain.eq).not.toHaveBeenCalledWith('position_updated_at', expect.anything());
   });
 
-  it('does not apply a version filter when no expected_*_updated_at is supplied', async () => {
+  it('rejects a details update with 400 when expected_details_updated_at is missing', async () => {
     mockGetBoardByCode.mockResolvedValue(makeBoard());
-
-    const chain = createChain({ data: makeProspect() });
-    mockSupabase.from.mockReturnValue(chain);
 
     const { PATCH } = await import(
       '../../app/api/boards/[code]/prospects/[prospectId]/route'
     );
 
-    await PATCH(
-      patchRequest({ notes: 'No version check here' }),
+    const response = await PATCH(
+      patchRequest({ notes: 'No version supplied' }),
       { params: { code: 'ABC123', prospectId: 'prospect-1' } }
     );
 
-    expect(chain.eq).not.toHaveBeenCalledWith('details_updated_at', expect.anything());
-    expect(chain.eq).not.toHaveBeenCalledWith('position_updated_at', expect.anything());
+    expect(response.status).toBe(400);
+    // Should fail validation before ever touching the database.
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it('rejects a move with 400 when expected_position_updated_at is missing', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({ stage_id: 'stage-2', sort_order: 5000 }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(response.status).toBe(400);
+    expect(mockSupabase.from).not.toHaveBeenCalled();
   });
 });
 
