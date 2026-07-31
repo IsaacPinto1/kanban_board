@@ -12,6 +12,7 @@ import { mockStages, mockProspects } from '../../lib/mockData';
 export default function DemoPage() {
   const [stages, setStages] = useState(mockStages);
   const [prospects, setProspects] = useState(mockProspects);
+  const [openProspectId, setOpenProspectId] = useState(null);
 
   function handleMoveProspect(prospectId, newStageId, newSortOrder) {
     setProspects((prev) =>
@@ -60,6 +61,9 @@ export default function DemoPage() {
     <Board
       stages={stages}
       prospects={prospects}
+      openProspectId={openProspectId}
+      onOpenProspect={setOpenProspectId}
+      onCloseProspect={() => setOpenProspectId(null)}
       onMoveProspect={handleMoveProspect}
       onUpdateProspect={handleUpdateProspect}
       onDeleteProspect={handleDeleteProspect}
