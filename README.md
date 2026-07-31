@@ -119,7 +119,10 @@ settings, and every push to `main` deploys automatically.
 
 ## Roadmap
 
+- Clicking in should display the address, title, and rent in a clean way, then you can hit 'edit' to change things (maybe notes is
+always editable)
 - Map view: toggle from board to map, pins colored by stage (see `DESIGN.md` §7)
+- Application should have a checkbox for who has applied
 - Rent
 - Automatic address geocoding / photo enrichment
 - Finer-grained sharing (view-only links, per-person access)
