@@ -124,6 +124,7 @@ export default function BoardPage({ params }) {
       const { prospect } = await res.json();
       setProspects((prev) => prev.map((p) => (p.id === prospectId ? prospect : p)));
     } else {
+      // TODO: Write silently fails, should surface an alert so changes aren't lost.
       await refetchProspect(prospectId);
     }
   }
