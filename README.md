@@ -120,8 +120,9 @@ settings, and every push to `main` deploys automatically.
 ## Roadmap
 
 - Map view: toggle from board to map, pins colored by stage (see `DESIGN.md` §7)
-- Finer-grained sharing (view-only links, per-person access)
+- Rent
 - Automatic address geocoding / photo enrichment
+- Finer-grained sharing (view-only links, per-person access)
 
 ## License
 
