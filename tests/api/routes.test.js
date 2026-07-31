@@ -1104,6 +1104,136 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     expect(response.status).toBe(404);
     expect(mockSupabase.from).not.toHaveBeenCalled();
   });
+
+  it('checks updated_at against expected_updated_at when supplied', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const updatedProspect = makeProspect({ notes: 'Fresh notes' });
+    const chain = createChain({ data: updatedProspect });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    await PATCH(
+      patchRequest({
+        notes: 'Fresh notes',
+        expected_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(chain.eq).toHaveBeenCalledWith('updated_at', '2026-01-01T00:00:00.000Z');
+  });
+
+  it('returns 409 when expected_updated_at is stale', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    // .single() surfaces "no rows matched" as a PGRST116 error -- the
+    // updated_at filter matched nothing because someone else wrote first.
+    const chain = createChain({
+      error: { code: 'PGRST116', message: 'No rows found' },
+    });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({
+        notes: 'My stale edit',
+        expected_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toBe('conflict');
+  });
+
+  it('does not apply an updated_at filter when expected_updated_at is omitted', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({ data: makeProspect() });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    await PATCH(
+      patchRequest({ notes: 'No version check here' }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(chain.eq).not.toHaveBeenCalledWith('updated_at', expect.anything());
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * GET /api/boards/[code]/prospects/[prospectId]
+ * ---------------------------------------------------------------------------
+ */
+
+describe('GET /api/boards/[code]/prospects/[prospectId]', () => {
+  it('returns the current prospect', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const prospect = makeProspect({ notes: 'Someone else already updated this' });
+    const chain = createChain({ data: prospect });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { GET } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await GET(new Request('http://localhost'), {
+      params: { code: 'ABC123', prospectId: 'prospect-1' },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.prospect).toEqual(prospect);
+    expect(chain.eq).toHaveBeenCalledWith('id', 'prospect-1');
+    expect(chain.eq).toHaveBeenCalledWith('board_id', 'board-1');
+  });
+
+  it('returns 404 when the prospect does not exist on this board', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({ error: { code: 'PGRST116', message: 'No rows found' } });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { GET } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await GET(new Request('http://localhost'), {
+      params: { code: 'ABC123', prospectId: 'missing-prospect' },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 for an unknown board', async () => {
+    mockGetBoardByCode.mockResolvedValue(null);
+
+    const { GET } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await GET(new Request('http://localhost'), {
+      params: { code: 'NOPE12', prospectId: 'prospect-1' },
+    });
+
+    expect(response.status).toBe(404);
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
 });
 
 /*

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Board from '../../../components/Board';
 
 // See DESIGN.md section 9: fetches client-side and renders its own
@@ -12,38 +12,61 @@ export default function BoardPage({ params }) {
   const [stages, setStages] = useState([]);
   const [prospects, setProspects] = useState([]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch(`/api/boards/${code}`);
-        if (cancelled) return;
-
-        if (res.status === 404) {
-          setStatus('not-found');
-          return;
-        }
-        if (!res.ok) {
-          setStatus('error');
-          return;
-        }
-
-        const json = await res.json();
-        setBoard(json.board);
-        setStages(json.stages);
-        setProspects(json.prospects);
-        setStatus('ready');
-      } catch {
-        if (!cancelled) setStatus('error');
+  // Pulled out of the effect so it can also be called on window focus
+  // (see below) -- not just on the initial mount.
+  const loadBoard = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/boards/${code}`);
+      if (res.status === 404) {
+        setStatus('not-found');
+        return;
       }
-    }
+      if (!res.ok) {
+        setStatus('error');
+        return;
+      }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+      const json = await res.json();
+      setBoard(json.board);
+      setStages(json.stages);
+      setProspects(json.prospects);
+      setStatus('ready');
+    } catch {
+      setStatus('error');
+    }
   }, [code]);
+
+  // Initial load.
+  useEffect(() => {
+    loadBoard();
+  }, [loadBoard]);
+
+  // Refetch whenever the tab regains focus. This is the main defence against
+  // staleness: if the board was left open (e.g. on a phone) while someone
+  // else made changes, coming back to the tab catches it up before the user
+  // acts on outdated info, rather than relying only on conflicts being
+  // caught at write time.
+  useEffect(() => {
+    function handleFocus() {
+      loadBoard();
+    }
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadBoard]);
+
+  // Refetch a single prospect and merge it into local state. Used when a
+  // PATCH is rejected (most commonly a 409 because someone else changed this
+  // prospect first -- see handleMoveProspect / handleUpdateProspect) so the
+  // optimistic update we made gets corrected without reloading the board.
+  async function refetchProspect(prospectId) {
+    const res = await fetch(`/api/boards/${code}/prospects/${prospectId}`);
+    if (res.ok) {
+      const { prospect } = await res.json();
+      setProspects((prev) => prev.map((p) => (p.id === prospectId ? prospect : p)));
+    }
+    // A 404 here means the card was deleted elsewhere; leave it in state for
+    // now, the next focus-triggered board reload will drop it.
+  }
 
   // --- Mutation handlers: optimistic local update + API call. ---
   // Each mirrors one of the routes in app/api/boards/[code]/.
@@ -64,26 +87,46 @@ export default function BoardPage({ params }) {
   }
 
   async function handleMoveProspect(prospectId, newStageId, newSortOrder) {
+    const previous = prospects.find((p) => p.id === prospectId);
     setProspects((prev) =>
       prev.map((p) =>
         p.id === prospectId ? { ...p, stage_id: newStageId, sort_order: newSortOrder } : p
       )
     );
-    await fetch(`/api/boards/${code}/prospects/${prospectId}`, {
+    const res = await fetch(`/api/boards/${code}/prospects/${prospectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stage_id: newStageId, sort_order: newSortOrder }),
+      body: JSON.stringify({
+        stage_id: newStageId,
+        sort_order: newSortOrder,
+        expected_updated_at: previous?.updated_at,
+      }),
     });
-    // TODO: on failure, consider reverting local state and surfacing an error.
+    if (res.ok) {
+      const { prospect } = await res.json();
+      setProspects((prev) => prev.map((p) => (p.id === prospectId ? prospect : p)));
+    } else {
+      // Most likely a 409: someone else moved/edited this card first, so
+      // our optimistic guess above is wrong -- pull the real state instead.
+      await refetchProspect(prospectId);
+    }
   }
 
   async function handleUpdateProspect(prospectId, updates) {
+    const previous = prospects.find((p) => p.id === prospectId);
     setProspects((prev) => prev.map((p) => (p.id === prospectId ? { ...p, ...updates } : p)));
-    await fetch(`/api/boards/${code}/prospects/${prospectId}`, {
+    const res = await fetch(`/api/boards/${code}/prospects/${prospectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify({ ...updates, expected_updated_at: previous?.updated_at }),
     });
+    if (res.ok) {
+      const { prospect } = await res.json();
+      setProspects((prev) => prev.map((p) => (p.id === prospectId ? prospect : p)));
+    } else {
+      // TODO: Write silently fails, should surface an alert so changes aren't lost.
+      await refetchProspect(prospectId);
+    }
   }
 
   async function handleDeleteProspect(prospectId) {
