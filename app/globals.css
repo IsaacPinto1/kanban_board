@@ -317,6 +317,41 @@ main {
   gap: 8px;
 }
 
+/* --- Delete confirmation --- */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 20px;
+}
+
+.confirm-dialog {
+  background: #fff;
+  width: 100%;
+  max-width: 320px;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.25);
+}
+
+.confirm-dialog__message {
+  font-size: 15px;
+  line-height: 1.4;
+  color: #1e293b;
+  margin: 0 0 16px;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* --- Stage editor --- */
 
 .stage-editor {
