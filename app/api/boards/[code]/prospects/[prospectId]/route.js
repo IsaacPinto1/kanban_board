@@ -21,18 +21,32 @@ export async function GET(request, { params }) {
   return NextResponse.json({ prospect: data });
 }
 
+const DETAIL_FIELDS = ['address', 'property_name', 'notes', 'listing_url'];
+const POSITION_FIELDS = ['stage_id', 'sort_order'];
+
 // PATCH /api/boards/[code]/prospects/[prospectId]
-// body: any of { address, property_name, notes, stage_id, sort_order },
-// plus an optional `expected_updated_at` -- the `updated_at` value the
-// client last saw for this prospect. A drag-and-drop move is just this
-// endpoint updating stage_id + sort_order.
+// body: any of { address, property_name, notes, stage_id, sort_order }.
+// A drag-and-drop move is just this endpoint updating stage_id + sort_order;
+// the detail sheet is just this endpoint updating the other fields. The two
+// are treated as independent concerns for concurrency purposes (see below),
+// so callers should only ever send one kind of field per request.
 //
-// When `expected_updated_at` is supplied, the update is conditioned on the
-// row's current `updated_at` still matching it. Since `id` is a primary
-// key, that condition can only match 0 or 1 rows -- so if `.single()` comes
-// back with "no rows" (PGRST116) here, it means someone else updated this
-// prospect after the client last fetched it, and we tell the client to
-// treat this as a stale-write conflict rather than a generic error.
+// Optional conflict-check fields:
+//   expected_details_updated_at  -- checked/bumped only if any of
+//                                   address/property_name/notes/listing_url
+//                                   is present in the body
+//   expected_position_updated_at -- checked/bumped only if stage_id or
+//                                   sort_order is present in the body
+//
+// These are deliberately separate from each other (rather than one shared
+// `updated_at`) so that someone dragging a card to a new stage doesn't
+// invalidate someone else's in-progress edit to that card's notes, and vice
+// versa. Since `id` is a primary key, an `.eq('..._updated_at', expected)`
+// condition can only match 0 or 1 rows -- so if `.single()` comes back with
+// "no rows" (PGRST116), it means someone else wrote to that same concern
+// (position or details) after the client last fetched it, and we tell the
+// client to treat this as a stale-write conflict rather than a generic
+// error.
 export async function PATCH(request, { params }) {
   const board = await getBoardByCode(params.code);
   if (!board) {
@@ -48,21 +62,28 @@ export async function PATCH(request, { params }) {
   if (body.stage_id !== undefined) updates.stage_id = body.stage_id;
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
 
+  const touchesDetails = DETAIL_FIELDS.some((field) => body[field] !== undefined);
+  const touchesPosition = POSITION_FIELDS.some((field) => body[field] !== undefined);
+
+  if (touchesDetails) updates.details_updated_at = updates.updated_at;
+  if (touchesPosition) updates.position_updated_at = updates.updated_at;
+
   let query = supabase
     .from('prospects')
     .update(updates)
     .eq('id', params.prospectId)
     .eq('board_id', board.id);
 
-  const hasExpectedUpdatedAt = body.expected_updated_at !== undefined;
-  if (hasExpectedUpdatedAt) {
-    query = query.eq('updated_at', body.expected_updated_at);
-  }
+  const checksDetails = touchesDetails && body.expected_details_updated_at !== undefined;
+  const checksPosition = touchesPosition && body.expected_position_updated_at !== undefined;
+
+  if (checksDetails) query = query.eq('details_updated_at', body.expected_details_updated_at);
+  if (checksPosition) query = query.eq('position_updated_at', body.expected_position_updated_at);
 
   const { data, error } = await query.select().single();
 
   if (error) {
-    if (hasExpectedUpdatedAt && error.code === 'PGRST116') {
+    if ((checksDetails || checksPosition) && error.code === 'PGRST116') {
       return NextResponse.json(
         { error: 'conflict', message: 'This card was changed by someone else.' },
         { status: 409 }

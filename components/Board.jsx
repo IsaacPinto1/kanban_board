@@ -17,6 +17,9 @@ import { useRouter } from 'next/navigation';
 export default function Board({
   stages,
   prospects,
+  openProspectId,
+  onOpenProspect,
+  onCloseProspect,
   onMoveProspect,
   onUpdateProspect,
   onDeleteProspect,
@@ -27,7 +30,6 @@ export default function Board({
 }) {
   const [editMode, setEditMode] = useState(false);
   const [stageEditorOpen, setStageEditorOpen] = useState(false);
-  const [openProspectId, setOpenProspectId] = useState(null);
   const [addProspectOpen, setAddProspectOpen] = useState(false);
 
   const router = useRouter();
@@ -93,7 +95,7 @@ export default function Board({
               stage={stage}
               prospects={prospectsForStage(stage.id)}
               editMode={editMode}
-              onOpenCard={(p) => setOpenProspectId(p.id)}
+              onOpenCard={(p) => onOpenProspect(p.id)}
             />
           ))}
         </div>
@@ -102,11 +104,11 @@ export default function Board({
       {openProspect && (
         <CardDetailSheet
           prospect={openProspect}
-          onClose={() => setOpenProspectId(null)}
+          onClose={onCloseProspect}
           onSave={onUpdateProspect}
           onDelete={(id) => {
             onDeleteProspect(id);
-            setOpenProspectId(null);
+            onCloseProspect();
           }}
         />
       )}

@@ -1105,7 +1105,7 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     expect(mockSupabase.from).not.toHaveBeenCalled();
   });
 
-  it('checks updated_at against expected_updated_at when supplied', async () => {
+  it('checks details_updated_at against expected_details_updated_at for a details edit', async () => {
     mockGetBoardByCode.mockResolvedValue(makeBoard());
 
     const updatedProspect = makeProspect({ notes: 'Fresh notes' });
@@ -1119,19 +1119,44 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     await PATCH(
       patchRequest({
         notes: 'Fresh notes',
-        expected_updated_at: '2026-01-01T00:00:00.000Z',
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
       }),
       { params: { code: 'ABC123', prospectId: 'prospect-1' } }
     );
 
-    expect(chain.eq).toHaveBeenCalledWith('updated_at', '2026-01-01T00:00:00.000Z');
+    expect(chain.eq).toHaveBeenCalledWith('details_updated_at', '2026-01-01T00:00:00.000Z');
+    expect(chain.eq).not.toHaveBeenCalledWith('position_updated_at', expect.anything());
   });
 
-  it('returns 409 when expected_updated_at is stale', async () => {
+  it('checks position_updated_at against expected_position_updated_at for a move', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({ data: makeProspect({ stage_id: 'stage-2' }) });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    await PATCH(
+      patchRequest({
+        stage_id: 'stage-2',
+        sort_order: 5000,
+        expected_position_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(chain.eq).toHaveBeenCalledWith('position_updated_at', '2026-01-01T00:00:00.000Z');
+    expect(chain.eq).not.toHaveBeenCalledWith('details_updated_at', expect.anything());
+  });
+
+  it('returns 409 when expected_details_updated_at is stale', async () => {
     mockGetBoardByCode.mockResolvedValue(makeBoard());
 
     // .single() surfaces "no rows matched" as a PGRST116 error -- the
-    // updated_at filter matched nothing because someone else wrote first.
+    // details_updated_at filter matched nothing because someone else wrote
+    // to this prospect's details first.
     const chain = createChain({
       error: { code: 'PGRST116', message: 'No rows found' },
     });
@@ -1144,7 +1169,7 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     const response = await PATCH(
       patchRequest({
         notes: 'My stale edit',
-        expected_updated_at: '2026-01-01T00:00:00.000Z',
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
       }),
       { params: { code: 'ABC123', prospectId: 'prospect-1' } }
     );
@@ -1155,7 +1180,60 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
     expect(body.error).toBe('conflict');
   });
 
-  it('does not apply an updated_at filter when expected_updated_at is omitted', async () => {
+  it('returns 409 when expected_position_updated_at is stale', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({
+      error: { code: 'PGRST116', message: 'No rows found' },
+    });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({
+        stage_id: 'stage-2',
+        sort_order: 5000,
+        expected_position_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toBe('conflict');
+  });
+
+  it('a details-only edit never checks position_updated_at, even if position changed concurrently', async () => {
+    // Someone dragged this card to a new stage (bumping position_updated_at)
+    // while we were editing its notes. A details-only PATCH never includes
+    // expected_position_updated_at, so that concurrent move can't cause our
+    // notes save to conflict.
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({ data: makeProspect({ notes: 'Updated notes' }) });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({
+        notes: 'Updated notes',
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(response.status).toBe(200);
+    expect(chain.eq).not.toHaveBeenCalledWith('position_updated_at', expect.anything());
+  });
+
+  it('does not apply a version filter when no expected_*_updated_at is supplied', async () => {
     mockGetBoardByCode.mockResolvedValue(makeBoard());
 
     const chain = createChain({ data: makeProspect() });
@@ -1170,7 +1248,8 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
       { params: { code: 'ABC123', prospectId: 'prospect-1' } }
     );
 
-    expect(chain.eq).not.toHaveBeenCalledWith('updated_at', expect.anything());
+    expect(chain.eq).not.toHaveBeenCalledWith('details_updated_at', expect.anything());
+    expect(chain.eq).not.toHaveBeenCalledWith('position_updated_at', expect.anything());
   });
 });
 

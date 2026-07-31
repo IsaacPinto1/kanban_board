@@ -14,7 +14,15 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
     setPropertyName(prospect.property_name || '');
     setListingUrl(prospect.listing_url || '');
     setNotes(prospect.notes || '');
-  }, [prospect]);
+    // Deliberately keyed on the id, not the whole `prospect` object: a
+    // background refresh can hand us a new object for the *same* card (e.g.
+    // its position changed) and we don't want that to reset an in-progress
+    // edit. Only switching to a genuinely different card should reset the
+    // draft. See page.js's loadBoard for the other half of this -- it also
+    // avoids replacing the currently-open prospect's object while this sheet
+    // is open, so in practice this effect only re-runs on a real card change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prospect.id]);
 
   function handleSave() {
     onSave(prospect.id, { 
