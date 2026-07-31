@@ -120,6 +120,9 @@ settings, and every push to `main` deploys automatically.
 ## Roadmap
 
 - Map view: toggle from board to map, pins colored by stage (see `DESIGN.md` §7)
+- Allow for backup emails to be added
+- Replace the edit toggle with a little visual handle, and make the placement a bit more slick (shouldn't have
+the delay upon dropping)
 - Application should have a checkbox for who has applied
 - Automatic address geocoding / photo enrichment
 - Finer-grained sharing (view-only links, per-person access)
