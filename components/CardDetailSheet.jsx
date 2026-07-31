@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // Full-screen sheet on mobile (see DESIGN.md section 6 -- friendlier than a
 // centered modal on small viewports).
@@ -17,6 +17,16 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
   const [listingUrl, setListingUrl] = useState(prospect.listing_url || '');
   const [rent, setRent] = useState(prospect.rent != null ? String(prospect.rent) : '');
   const [notes, setNotes] = useState(prospect.notes || '');
+  // Tracks whether the mousedown that started this click also landed on the
+  // overlay itself (as opposed to inside the sheet). Without this, dragging
+  // a text selection or resizing the notes textarea and releasing the mouse
+  // past the sheet's edge would fire a click on the overlay and close the
+  // modal, even though the interaction started inside it.
+  const mouseDownOnOverlay = useRef(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  // Same drag-safe close behavior as the main overlay, applied to the
+  // confirm dialog's own backdrop.
+  const confirmMouseDownOnOverlay = useRef(false);
 
   useEffect(() => {
     setMode('view');
@@ -24,6 +34,7 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
     setListingUrl(prospect.listing_url || '');
     setRent(prospect.rent != null ? String(prospect.rent) : '');
     setNotes(prospect.notes || '');
+    setConfirmDeleteOpen(false);
     // Deliberately keyed on the id, not the whole `prospect` object: a
     // background refresh can hand us a new object for the *same* card (e.g.
     // its position changed) and we don't want that to reset an in-progress
@@ -46,7 +57,17 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
   }
 
   return (
-    <div className="sheet-overlay" onClick={onClose}>
+    <div
+      className="sheet-overlay"
+      onMouseDown={(e) => {
+        mouseDownOnOverlay.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet__header">
           <button
@@ -152,7 +173,10 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
         />
 
         <div className="sheet__actions">
-          <button className="button button--danger" onClick={() => onDelete(prospect.id)}>
+          <button
+            className="button button--danger"
+            onClick={() => setConfirmDeleteOpen(true)}
+          >
             Delete
           </button>
           <button className="button button--primary" onClick={handleSave}>
@@ -160,6 +184,40 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
           </button>
         </div>
       </div>
+
+      {confirmDeleteOpen && (
+        <div
+          className="confirm-overlay"
+          onMouseDown={(e) => {
+            confirmMouseDownOnOverlay.current = e.target === e.currentTarget;
+          }}
+          onClick={(e) => {
+            if (confirmMouseDownOnOverlay.current && e.target === e.currentTarget) {
+              setConfirmDeleteOpen(false);
+            }
+          }}
+        >
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog__message">
+              Delete this prospect? This can&apos;t be undone.
+            </p>
+            <div className="confirm-dialog__actions">
+              <button className="button" onClick={() => setConfirmDeleteOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="button button--danger"
+                onClick={() => {
+                  setConfirmDeleteOpen(false);
+                  onDelete(prospect.id);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
