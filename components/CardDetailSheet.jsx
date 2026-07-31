@@ -62,39 +62,38 @@ export default function CardDetailSheet({ prospect, onClose, onSave, onDelete })
 
         {mode === 'view' ? (
           <div className="sheet__view">
-            <h2 className="sheet__title">{prospect.address}</h2>
+            <div className="sheet__title-row">
+              <h2 className="sheet__title">{prospect.address}</h2>
+              {listingUrl && (
+                <a
+                  className="sheet__listing-link"
+                  href={listingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open listing for ${prospect.address}`}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                </a>
+              )}
+            </div>
             {propertyName && <p className="sheet__subtitle">{propertyName}</p>}
 
-            {(rent.trim() !== '' || listingUrl) && (
+            {rent.trim() !== '' && (
               <div className="sheet__meta-row">
-                {rent.trim() !== '' && (
-                  <span className="sheet__rent">${Number(rent).toLocaleString()}</span>
-                )}
-                {listingUrl && (
-                  <a
-                    className="sheet__listing-link"
-                    href={listingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open listing for ${prospect.address}`}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M14 3h7v7" />
-                      <path d="M10 14L21 3" />
-                      <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
-                    </svg>
-                  </a>
-                )}
+                <span className="sheet__rent">${Number(rent).toLocaleString()}</span>
               </div>
             )}
           </div>

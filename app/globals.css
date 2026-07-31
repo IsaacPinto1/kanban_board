@@ -244,6 +244,12 @@ main {
   margin-bottom: 4px;
 }
 
+.sheet__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .sheet__title {
   font-size: 20px;
   font-weight: 700;
@@ -274,8 +280,9 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   color: #64748b;
   text-decoration: none;
