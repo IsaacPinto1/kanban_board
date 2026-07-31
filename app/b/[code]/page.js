@@ -168,6 +168,11 @@ export default function BoardPage({ params }) {
     }
   }
 
+  // Callers that reload the board (e.g. closing the detail sheet, which
+  // calls loadBoard) must await this first. loadBoard has no way to know a
+  // delete is in flight for this id, so firing it before the DELETE has
+  // actually committed server-side can bring the "deleted" prospect right
+  // back in the response and overwrite this optimistic removal.
   async function handleDeleteProspect(prospectId) {
     setProspects((prev) => prev.filter((p) => p.id !== prospectId));
     await fetch(`/api/boards/${code}/prospects/${prospectId}`, { method: 'DELETE' });

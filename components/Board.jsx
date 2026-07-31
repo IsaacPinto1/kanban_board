@@ -106,8 +106,8 @@ export default function Board({
           prospect={openProspect}
           onClose={onCloseProspect}
           onSave={onUpdateProspect}
-          onDelete={(id) => {
-            onDeleteProspect(id);
+          onDelete={async (id) => {
+            await onDeleteProspect(id);
             onCloseProspect();
           }}
         />
