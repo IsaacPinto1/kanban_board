@@ -843,8 +843,72 @@ describe('POST /api/boards/[code]/prospects', () => {
       property_name: 'Nice Apartment',
       notes: 'Ask about pets',
       listing_url: null,
+      rent: null,
       sort_order: 3000,
     });
+  });
+
+  it('accepts rent when creating a prospect', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const existingChain = createChain({ data: [] });
+    const insertChain = createChain({ data: makeProspect({ rent: 2500 }) });
+
+    let calls = 0;
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'prospects') {
+        calls += 1;
+        return calls === 1 ? existingChain : insertChain;
+      }
+      return createChain();
+    });
+
+    const { POST } = await import(
+      '../../app/api/boards/[code]/prospects/route'
+    );
+
+    const response = await POST(
+      jsonRequest({
+        address: '123 Main St',
+        stage_id: 'stage-1',
+        rent: 2500,
+      }),
+      { params: { code: 'ABC123' } }
+    );
+
+    expect(response.status).toBe(201);
+    expect(insertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ rent: 2500 })
+    );
+  });
+
+  it('defaults rent to null when omitted while creating a prospect', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const existingChain = createChain({ data: [] });
+    const insertChain = createChain({ data: makeProspect() });
+
+    let calls = 0;
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'prospects') {
+        calls += 1;
+        return calls === 1 ? existingChain : insertChain;
+      }
+      return createChain();
+    });
+
+    const { POST } = await import(
+      '../../app/api/boards/[code]/prospects/route'
+    );
+
+    await POST(
+      jsonRequest({ address: '123 Main St', stage_id: 'stage-1' }),
+      { params: { code: 'ABC123' } }
+    );
+
+    expect(insertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ rent: null })
+    );
   });
 
   it('starts sort_order at 1000 when the stage is empty', async () => {
@@ -1107,6 +1171,71 @@ describe('PATCH /api/boards/[code]/prospects/[prospectId]', () => {
 
     expect(response.status).toBe(404);
     expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it('treats rent as a detail field, requiring expected_details_updated_at', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({ data: makeProspect({ rent: 2500 }) });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({
+        rent: 2500,
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(response.status).toBe(200);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ rent: 2500 })
+    );
+    expect(chain.eq).toHaveBeenCalledWith('details_updated_at', '2026-01-01T00:00:00.000Z');
+  });
+
+  it('rejects a rent-only update with 400 when expected_details_updated_at is missing', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({ rent: 2500 }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(response.status).toBe(400);
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it('allows clearing rent back to null', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard());
+
+    const chain = createChain({ data: makeProspect({ rent: null }) });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const { PATCH } = await import(
+      '../../app/api/boards/[code]/prospects/[prospectId]/route'
+    );
+
+    const response = await PATCH(
+      patchRequest({
+        rent: null,
+        expected_details_updated_at: '2026-01-01T00:00:00.000Z',
+      }),
+      { params: { code: 'ABC123', prospectId: 'prospect-1' } }
+    );
+
+    expect(response.status).toBe(200);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ rent: null })
+    );
   });
 
   it('checks details_updated_at against expected_details_updated_at for a details edit', async () => {

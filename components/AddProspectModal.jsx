@@ -8,6 +8,7 @@ export default function AddProspectModal({ stages, onClose, onCreate }) {
   const [address, setAddress] = useState('');
   const [propertyName, setPropertyName] = useState('');
   const [listingUrl, setListingUrl] = useState('');
+  const [rent, setRent] = useState('');
   const [notes, setNotes] = useState('');
   const [stageId, setStageId] = useState(stages[0]?.id || '');
   const [error, setError] = useState('');
@@ -25,6 +26,7 @@ export default function AddProspectModal({ stages, onClose, onCreate }) {
       address: address.trim(),
       property_name: propertyName.trim() || null,
       listing_url: listingUrl.trim() || null,
+      rent: rent.trim() === '' ? null : Number(rent),
       notes: notes.trim() || null,
       stage_id: stageId,
     });
@@ -74,6 +76,19 @@ export default function AddProspectModal({ stages, onClose, onCreate }) {
           value={listingUrl}
           onChange={(e) => setListingUrl(e.target.value)}
           placeholder="https://streeteasy.com/..."
+        />
+
+        <label className="sheet__label" htmlFor="add-prospect-rent">
+          Rent
+        </label>
+        <input
+          id="add-prospect-rent"
+          type="number"
+          inputMode="numeric"
+          className="sheet__input"
+          value={rent}
+          onChange={(e) => setRent(e.target.value)}
+          placeholder="e.g. 2500"
         />
 
         <label className="sheet__label" htmlFor="stage">

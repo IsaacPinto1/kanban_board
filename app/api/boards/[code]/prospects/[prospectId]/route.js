@@ -21,11 +21,11 @@ export async function GET(request, { params }) {
   return NextResponse.json({ prospect: data });
 }
 
-const DETAIL_FIELDS = ['address', 'property_name', 'notes', 'listing_url'];
+const DETAIL_FIELDS = ['address', 'property_name', 'notes', 'listing_url', 'rent'];
 const POSITION_FIELDS = ['stage_id', 'sort_order'];
 
 // PATCH /api/boards/[code]/prospects/[prospectId]
-// body: any of { address, property_name, notes, stage_id, sort_order }.
+// body: any of { address, property_name, notes, listing_url, rent, stage_id, sort_order }.
 // A drag-and-drop move is just this endpoint updating stage_id + sort_order;
 // the detail sheet is just this endpoint updating the other fields. The two
 // are treated as independent concerns for concurrency purposes (see below),
@@ -35,7 +35,7 @@ const POSITION_FIELDS = ['stage_id', 'sort_order'];
 // it'd otherwise be easy for some future caller to forget one and silently
 // reintroduce the race this exists to prevent):
 //   expected_details_updated_at  -- required if any of
-//                                   address/property_name/notes/listing_url
+//                                   address/property_name/notes/listing_url/rent
 //                                   is present in the body
 //   expected_position_updated_at -- required if stage_id or sort_order is
 //                                   present in the body
@@ -77,6 +77,7 @@ export async function PATCH(request, { params }) {
   if (body.property_name !== undefined) updates.property_name = body.property_name;
   if (body.listing_url !== undefined) {updates.listing_url = body.listing_url;}
   if (body.notes !== undefined) updates.notes = body.notes;
+  if (body.rent !== undefined) updates.rent = body.rent;
   if (body.stage_id !== undefined) updates.stage_id = body.stage_id;
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
 

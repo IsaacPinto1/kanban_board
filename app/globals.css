@@ -152,6 +152,19 @@ main {
   flex: 1;
 }
 
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.card__rent {
+  font-size: 12px;
+  color: #64748b;
+}
+
 /* --- Buttons --- */
 
 .button {
@@ -225,6 +238,52 @@ main {
   font-size: 13px;
   color: #64748b;
   margin: 0 0 16px;
+}
+
+.sheet__view {
+  margin-bottom: 4px;
+}
+
+.sheet__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 4px 0 2px;
+}
+
+.sheet__subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 12px;
+}
+
+.sheet__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sheet__rent {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.sheet__listing-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #64748b;
+  text-decoration: none;
+}
+
+.sheet__listing-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .sheet__label {
