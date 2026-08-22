@@ -321,7 +321,19 @@ describe('POST /api/boards', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toBe('Board code must be 3-20 letters and numbers');
+    expect(body.error).toBe('Board code must be exactly 6 letters and numbers');
+    expect(mockGetBoardByCode).not.toHaveBeenCalled();
+    expect(mockGenerateUniqueBoardCode).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when the requested custom code is not exactly 6 characters', async () => {
+    const { POST } = await import('../../app/api/boards/route');
+
+    const response = await POST(jsonRequest({ code: 'ABC' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Board code must be exactly 6 letters and numbers');
     expect(mockGetBoardByCode).not.toHaveBeenCalled();
     expect(mockGenerateUniqueBoardCode).not.toHaveBeenCalled();
   });

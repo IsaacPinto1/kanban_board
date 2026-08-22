@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Mirrors the CUSTOM_CODE_PATTERN in app/api/boards/route.js.
-const CUSTOM_CODE_PATTERN = /^[A-Z0-9]{3,20}$/;
+const CUSTOM_CODE_PATTERN = /^[A-Z0-9]{6}$/;
 
 const CUSTOM_CODE_HINTS = {
-  invalid: 'Use 3-20 letters and numbers.',
+  invalid: 'Use exactly 6 letters and numbers.',
   checking: 'Checking availability…',
   taken: 'That code is already taken.',
   available: 'Code is available!',
@@ -193,7 +193,7 @@ export default function Home() {
                 value={customCode}
                 onChange={handleCustomCodeChange}
                 placeholder="MYCODE"
-                maxLength={20}
+                maxLength={6}
                 autoComplete="off"
                 autoCapitalize="characters"
               />
