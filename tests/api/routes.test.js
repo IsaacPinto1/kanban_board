@@ -146,7 +146,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(201);
@@ -205,7 +205,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -248,7 +248,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -265,11 +265,77 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(500);
     expect(body.error).toBe('Could not create board');
+  });
+
+  it('creates a board with a requested custom code when it is available', async () => {
+    mockGetBoardByCode.mockResolvedValue(null);
+
+    const board = makeBoard({ code: 'MYCODE' });
+
+    const boardChain = createChain({ data: board, error: null });
+    const stagesChain = createChain({ data: null, error: null });
+
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'boards') return boardChain;
+      if (table === 'stages') return stagesChain;
+      return createChain();
+    });
+
+    const { POST } = await import('../../app/api/boards/route');
+
+    const response = await POST(jsonRequest({ code: 'myCode' }));
+    const body = await response.json();
+
+    expect(mockGetBoardByCode).toHaveBeenCalledWith('MYCODE');
+    expect(mockGenerateUniqueBoardCode).not.toHaveBeenCalled();
+    expect(boardChain.insert).toHaveBeenCalledWith({
+      code: 'MYCODE',
+      name: 'My Rental Search',
+    });
+    expect(response.status).toBe(201);
+    expect(body.code).toBe('MYCODE');
+  });
+
+  it('returns 409 when the requested custom code is already taken', async () => {
+    mockGetBoardByCode.mockResolvedValue(makeBoard({ code: 'MYCODE' }));
+
+    const { POST } = await import('../../app/api/boards/route');
+
+    const response = await POST(jsonRequest({ code: 'MYCODE' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toBe('That code is already taken');
+    expect(mockGenerateUniqueBoardCode).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when the requested custom code has an invalid format', async () => {
+    const { POST } = await import('../../app/api/boards/route');
+
+    const response = await POST(jsonRequest({ code: 'a b!' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Board code must be exactly 6 letters and numbers');
+    expect(mockGetBoardByCode).not.toHaveBeenCalled();
+    expect(mockGenerateUniqueBoardCode).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when the requested custom code is not exactly 6 characters', async () => {
+    const { POST } = await import('../../app/api/boards/route');
+
+    const response = await POST(jsonRequest({ code: 'ABC' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Board code must be exactly 6 letters and numbers');
+    expect(mockGetBoardByCode).not.toHaveBeenCalled();
+    expect(mockGenerateUniqueBoardCode).not.toHaveBeenCalled();
   });
 });
 
