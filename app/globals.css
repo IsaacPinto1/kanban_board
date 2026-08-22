@@ -526,6 +526,30 @@ main {
   width: 100%;
 }
 
+.landing__custom-code {
+  text-align: left;
+}
+
+.landing__code-status {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.landing__code-status--available {
+  color: #16a34a;
+}
+
+.landing__code-status--taken,
+.landing__code-status--invalid {
+  color: #dc2626;
+}
+
+.landing__code-status--checking {
+  color: #94a3b8;
+}
+
 .new-board-modal {
   position: fixed;
   inset: 0;
