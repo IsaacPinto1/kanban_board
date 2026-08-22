@@ -38,9 +38,6 @@ export default function Home() {
     setCustomCode(sanitized);
   };
 
-  // Debounced availability check: reuses GET /api/boards/[code], the same
-  // endpoint the "open a board" form uses, since a 200 there just means
-  // "a board with this code exists".
   useEffect(() => {
     if (!customCode) {
       setCustomCodeState('idle');
@@ -59,7 +56,7 @@ export default function Home() {
         const res = await fetch(`/api/boards/${customCode}`, {
           method: 'GET',
         });
-        setCustomCodeState(res.ok ? 'taken' : 'available');
+        setCustomCodeState(res.ok ? 'taken' : 'available'); // 200 means board with code exists
       } catch {
         setCustomCodeState('idle');
       }
