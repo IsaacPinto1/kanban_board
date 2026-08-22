@@ -11,20 +11,15 @@ const DEFAULT_STAGES = [
   { name: 'Applying', color: '#34d399', sort_order: 5000 },
 ];
 
-// Custom codes: 6 uppercase letters/digits, matching the length of
-// auto-generated codes (CODE_LENGTH in lib/generateCode.js) so custom and
-// random codes are interchangeable everywhere a code is displayed, typed,
-// or validated (e.g. the 6-char board-code input on the "open a board"
-// form). A bit more permissive on alphabet than generation -- a human
-// picking their own code should be able to use any letter or digit,
-// including the visually-ambiguous ones (0/O, 1/I/L) that generation
-// avoids.
+// Custom codes are 6 digits to match lib/generateCode.js. Slightly more
+// permissive than random, since users might want to use 0/O or 1/I/L which
+// are excluded from the random codes for visibility
 const CUSTOM_CODE_PATTERN = /^[A-Z0-9]{6}$/;
 
 // POST /api/boards -> create a board.
 // JSON body: { code: 'MYCODE' } to request a specific board code, or
-// { code: '' } / an empty object to get a randomly generated one. The
-// frontend always sends a body now, so we can parse it directly.
+// { code: '' } / an empty object to get a randomly generated one.
+// This always expects a body so the frontend should always send one
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -43,12 +38,8 @@ export async function POST(request) {
         );
       }
 
-      // The frontend already checks availability before submitting, but we
-      // re-check here too: that check and this request are two separate
-      // round trips, so another request can claim the code in between
-      // (TOCTOU). Without this, the insert below would still fail on the
-      // DB's unique constraint, but with a raw Postgres error instead of a
-      // clean 409.
+      // Already checked on frontend but checked again here so that we get
+      // a clean 409 in a race instead of a raw Postgres error from the DB's unique constraint
       const existingBoard = await getBoardByCode(requestedCode);
       if (existingBoard) {
         return NextResponse.json(
