@@ -18,23 +18,16 @@ const DEFAULT_STAGES = [
 const CUSTOM_CODE_PATTERN = /^[A-Z0-9]{3,20}$/;
 
 // POST /api/boards -> create a board.
-// Optional JSON body: { code: 'MYCODE' } to request a specific board code
-// instead of a randomly generated one. If omitted (or no body at all,
-// preserving the previous no-argument behavior), a unique code is generated.
+// JSON body: { code: 'MYCODE' } to request a specific board code, or
+// { code: '' } / an empty object to get a randomly generated one. The
+// frontend always sends a body now, so we can parse it directly.
 export async function POST(request) {
   try {
-    let requestedCode = null;
-
-    if (request) {
-      try {
-        const body = await request.json();
-        if (body && typeof body.code === 'string' && body.code.trim() !== '') {
-          requestedCode = body.code.trim().toUpperCase();
-        }
-      } catch {
-        // No body, or not valid JSON -- treat as "no custom code requested".
-      }
-    }
+    const body = await request.json();
+    const requestedCode =
+      typeof body.code === 'string' && body.code.trim() !== ''
+        ? body.code.trim().toUpperCase()
+        : null;
 
     let code;
 
@@ -46,6 +39,12 @@ export async function POST(request) {
         );
       }
 
+      // The frontend already checks availability before submitting, but we
+      // re-check here too: that check and this request are two separate
+      // round trips, so another request can claim the code in between
+      // (TOCTOU). Without this, the insert below would still fail on the
+      // DB's unique constraint, but with a raw Postgres error instead of a
+      // clean 409.
       const existingBoard = await getBoardByCode(requestedCode);
       if (existingBoard) {
         return NextResponse.json(

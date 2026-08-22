@@ -146,7 +146,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(201);
@@ -205,7 +205,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -248,7 +248,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -265,7 +265,7 @@ describe('POST /api/boards', () => {
 
     const { POST } = await import('../../app/api/boards/route');
 
-    const response = await POST();
+    const response = await POST(jsonRequest({}));
     const body = await response.json();
 
     expect(response.status).toBe(500);
